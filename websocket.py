@@ -2,30 +2,23 @@ import asyncio
 import websockets
 
 async def hello(websockets, path):
-    name = await websockets.recv()
-    print(f"< {name}!")
-    seguro = f"bien"
-    ayuda = f"mal"
-    
-    
-    if name == ayuda:
-        alerta = f"tu presion es mayor a 180!, vamos a inyectar medicamento"
+    bpm = await websockets.recv()
+    print(f"< {bpm}!")
+    seguro = f"estas bien"
+    ayuda = f"estas mal"
 
-        await websockets.send(alerta)
-        print(f"> {alerta}")
+
+    freq = int.from_bytes(bpm, "big")
     
-    elif name == seguro:
-        
-        aviso = f"estas bien"
-        await websockets.send(aviso)
-        print(f">{aviso}")
+    if freq > 180:
+
+        await websockets.send(ayuda)
 
     else:
-        nada = f"no hay informacion"
-        await websockets.send(nada)
-        print(f">{nada}")
 
-        
+        await websockets.send(seguro)
+    
+    
 
 start_server = websockets.serve(hello, "localhost", 8765)
 
