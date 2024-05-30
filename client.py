@@ -6,18 +6,14 @@ async def hello():
     url = "ws://localhost:8765"
     async with websockets.connect(url) as websocket:
 
-        name = int (input("tu presion es:"))
-        seguro = f"bien"
-        ayuda = f"mal"
 
-        if name > 180:
+        
+        bpm = int (input("tu presion es:")).to_bytes(2, 'big')
+        print (bpm)
 
-            await websocket.send(ayuda)
+    
+        await websocket.send(bpm)
             
-        else:
-
-            await websocket.send(seguro)
-
 
         alerta = await websocket.recv()
         print(f"<{alerta}")
