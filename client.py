@@ -1,23 +1,34 @@
-import asyncio
-import websockets
+import usocket as socket
+
+import network   # handles connecting to WiFi
+
+# Connect to network
+wlan = network.WLAN(network.STA_IF)
+wlan.active(True)
+
+# Fill in your network name (ssid) and password here:
+ssid = 'AracaLaVaca'
+password = 'DCCB2431'
+wlan.connect(ssid, password)
+
+host = '192.168.1.43'
+port = 5000
+
+s = socket.socket()
+s.connect((host,port))
+print("Connected to",host)
 
 
-async def hello():
-    url = "ws://localhost:8765"
-    async with websockets.connect(url) as websocket:
+
+   
 
 
-        
-        bpm = int (input("tu presion es:")).to_bytes(2, 'big')
-        print (bpm)
+while True:
+    message = input("->")
+    s.send(message.encode())
+    msg = s.recv(1024)
+    print(msg.decode("utf-8"))
+   
+    #convert to bytes then send
 
-    
-        await websocket.send(bpm)
-            
-
-        alerta = await websocket.recv()
-        print(f"<{alerta}")
-
-
-
-asyncio.get_event_loop().run_until_complete(hello())
+   
