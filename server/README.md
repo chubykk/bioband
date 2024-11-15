@@ -17,7 +17,7 @@ gh auth login
 3. Crear un entorno virtual
 
 ```bash
-python3 -m pip venv .bioband
+python3 -mp venv .bioband
 ```
 
 4. Activar entorno virtual
