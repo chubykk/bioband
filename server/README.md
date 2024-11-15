@@ -2,16 +2,16 @@
 
 ## Instalation
 
-1. Asegurarse de tener `pip`>
+1. Tener `git`, `gh`, `pip` y `venv` instalados:
 
 ```bash
-sudo apt install python3-pip -y
+sudo apt install python3-pip python3-venv git gh -y
 ```
 
-2. Instalar un entorno virtual
+2. Autorizar la computadora con `gh` en el navegador:
 
 ```bash
-sudo apt install python3-venv -y
+gh auth login
 ```
 
 3. Crear un entorno virtual
