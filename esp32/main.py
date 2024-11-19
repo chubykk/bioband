@@ -37,6 +37,8 @@ if not sta_if.isconnected():
         pass
 print('network config:', sta_if.ifconfig())
 
+
+#router_ip = "192.168.1.42"
 router_ip = "192.168.0.100"
 #router_ip = "192.168.125.54"
 #router_ip = "192.168.127.246"
@@ -46,7 +48,8 @@ port = 8000
 s = socket.socket()
 s.connect((router_ip, port))
 print("Connected to",router_ip)
-
+myid = "esp32"
+s.send(myid.encode("utf-8"))
 
 
 # Scan I2C bus to ensure that the sensor is connected
@@ -153,6 +156,7 @@ while True:
             
         else:
             print('Not finger')
+
 
 
 
