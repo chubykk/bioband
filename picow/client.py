@@ -75,19 +75,45 @@ timer2 = Timer(-1)
 timer3 = Timer(-1)
 
 sta_if = network.WLAN(network.STA_IF)
-if not sta_if.isconnected():
-    print('connecting to network...')
-    sta_if.active(True)
-    # Fill in your network name (ssid) and password here:
-    ssid = 'LabLSE'
-    password = 'embebidos32'
-    sta_if.connect(ssid, password)
-    while not sta_if.isconnected():
-        pass
-    
-    
-print('network config:', sta_if.ifconfig())
+# Intentos de conexión hasta que se logre
+connected = False
 
+while True:  # Bucle principal que se ejecutará indefinidamente
+    if not sta_if.isconnected():
+        print('Intentando conectar a la red...')
+        sta_if.active(True)  # Asegurarse de que la interfaz está activa
+        ssid = 'LabLSE'  # Tu red Wi-Fi
+        password = 'embebidos32'  # Contraseña de tu red Wi-Fi
+        
+        connected = False
+        while not connected:
+            sta_if.connect(ssid, password)  # Intentar conectar
+            start_time = utime.ticks_ms()  # Registrar el tiempo de inicio
+            while not sta_if.isconnected():
+                # Esperar hasta que se conecte o hayan pasado 15 segundos
+                if utime.ticks_diff(utime.ticks_ms(), start_time) > 15000:
+                    print('No se pudo conectar en 15 segundos.')
+                    sta_if.active(False)  # Desactivar la interfaz de red
+                    print('Interfaz desactivada. Reintentando...')
+                    
+                    # Esperar un momento antes de volver a activar la interfaz
+                    sleep(2)  # Espera de 2 segundos antes de reactivar
+
+                    # Volver a activar la interfaz de red
+                    sta_if.active(True)
+                    break  # Salir del bucle y reintentar la conexión
+
+            # Si se logró conectar, salimos del bucle
+            if sta_if.isconnected():
+                connected = True
+                print('Conectado a la red Wi-Fi:', ssid)
+                print('Configuración de red:', sta_if.ifconfig())
+
+    else:
+        print('Ya estás conectado a la red.')
+        break  # Salir del bucle si ya está conectado
+
+#router_ip = "192.168.1.42"
 #router_ip = "192.168.127.134"
 #router_ip = "192.168.125.54"
 #router_ip = "127.0.0.1"
@@ -98,33 +124,33 @@ port = 8000
 s = socket.socket()
 s.connect((router_ip, port))
 print("Connected to",router_ip)
-s.setblocking(False)
+myid = "rppico"
+s.send(myid.encode("utf-8"))
+#s.setblocking(0)
+s.settimeout(5)
 
 
 def comunicacion():
     global bpm
+    global s
   
     while True:
-        print("recibiendo")
-        ready = select.select([s], [], [], 1000)
-        if ready[0]:
-            try:
-                msg = s.recv(1024)
-                bpm = msg.decode("utf-8")
-                print("bpm:", bpm)
-            
-            except OSError as e:
-                if e.errno == errno.EAGAIN:
-                    print("No hay datos disponibles, intenta más tarde.")
-            
-                else:
-                    raise
-              # Intenta recibir datos
-                
-  
+        print("Esperando recibir datos...")
         
-    
+        # select() espera hasta que haya datos disponibles para leer.
+        #ready = select.select([s], [], [], 1)# Timeout de 1 segundo
 
+        #if ready[0]:  # Si hay datos disponibles para leer
+        try:
+            # Intentar recibir los datos
+            msg = s.recv(1024)
+            bpm = msg.decode("utf-8")
+            print("bpm recibido:", bpm)
+
+        except OSError as e:
+            print(e)
+
+            
 def inyeccion():
     global c
     global a
@@ -198,6 +224,4 @@ comunicacion()
 
 while True:
     pass
-
-
 
