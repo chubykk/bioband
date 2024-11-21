@@ -9,23 +9,22 @@ import network
 import select
 import errno
 
-
 ## para "cargar" la jeringa con un boton en el gpio 26, haciendo que el motor gire hacia el otro lado
-    
 gpio26 = Pin(26, Pin.IN)
 
 
-
-c = 0
-a = 0
-h = 0
-reset = 0
+timer_started = False
+timer_count = 1
+timer_count_carga = 0
 bpm = 0
 
 MOTOR_PIN_16 = machine.Pin(16, machine.Pin.OUT) #IN1
 MOTOR_PIN_17 = machine.Pin(17, machine.Pin.OUT) #IN2
 MOTOR_PIN_18 = machine.Pin(18, machine.Pin.OUT) #IN3
 MOTOR_PIN_19 = machine.Pin(19, machine.Pin.OUT) #IN4
+
+timer = Timer(-1)
+
 
 
 
@@ -58,21 +57,34 @@ def detener_motor():
     MOTOR_PIN_18.value(0)
     MOTOR_PIN_19.value(0)
 
-def contador(t):
-    global c
-    c = c+1
 
-def contador2(t):
-    global a
-    a = a+1
+def inyeccion(t):
+    global timer_count, timer_started, gpio26, timer_count_carga
     
-def contador3(t):
-    global h
-    h = h+1
+    timer_count += 1
+    
+    
+    if timer_count >= 300 and not timer_count_carga: #3 seg de inyeccion
+        detener_motor()
+        
+        if timer_count == 3300: #30 seg para la proxima lectura
+            timer_count = 1
+            timer_started = False
+            t.deinit()
+    
+    
+    elif timer_count < 300 and not timer_count_carga: #inyeccion
+        girar_antihorario()
+        
 
-timer = Timer(-1)
-timer2 = Timer(-1)
-timer3 = Timer(-1)
+    if timer_count_carga: #carga
+        girar_horario()
+
+    if timer_count == timer_count_carga + 600: #6 seg de carga
+        timer_count_carga = 0
+        timer_started = False
+        t.deinit()
+        detener_motor()
 
 sta_if = network.WLAN(network.STA_IF)
 # Intentos de conexión hasta que se logre
@@ -91,8 +103,8 @@ while True:  # Bucle principal que se ejecutará indefinidamente
             start_time = utime.ticks_ms()  # Registrar el tiempo de inicio
             while not sta_if.isconnected():
                 # Esperar hasta que se conecte o hayan pasado 15 segundos
-                if utime.ticks_diff(utime.ticks_ms(), start_time) > 15000:
-                    print('No se pudo conectar en 15 segundos.')
+                if utime.ticks_diff(utime.ticks_ms(), start_time) > 5000:
+                    print('No se pudo conectar en 5 segundos.')
                     sta_if.active(False)  # Desactivar la interfaz de red
                     print('Interfaz desactivada. Reintentando...')
                     
@@ -126,102 +138,31 @@ s.connect((router_ip, port))
 print("Connected to",router_ip)
 myid = "rppico"
 s.send(myid.encode("utf-8"))
-#s.setblocking(0)
-s.settimeout(5)
 
+s.settimeout(1)
 
-def comunicacion():
-    global bpm
-    global s
-  
-    while True:
-        print("Esperando recibir datos...")
-        
-        # select() espera hasta que haya datos disponibles para leer.
-        #ready = select.select([s], [], [], 1)# Timeout de 1 segundo
-
-        #if ready[0]:  # Si hay datos disponibles para leer
-        try:
-            # Intentar recibir los datos
-            msg = s.recv(1024)
-            bpm = msg.decode("utf-8")
-            print("bpm recibido:", bpm)
-
-        except OSError as e:
-            print(e)
-
-            
-def inyeccion():
-    global c
-    global a
-    global h
-    global reset
-    global bpm
-    global timer
-    while True:
-       
-           
-        cargar = gpio26.value()
-       
-       
-        
-        if c == 0 and cargar == 1: #carga
-            
-            timer.init(period=100, mode=Timer.PERIODIC, callback=contador)
-            
-        if 0 < c < 50:
-          
-            girar_horario()
-            
-              
-        if c > 50:
-            
-            timer.deinit()
-            c = 0
-            detener_motor()
-        
-        
-        
-        
-        
-
-
-        if bpm == "1" and reset == 0: #inyeccion
-            
-            print("inyecta")
-            timer2.init(period=100, mode=Timer.PERIODIC, callback=contador2) #timer 5 seg para la inyeccion
-            timer3.init(period=100, mode=Timer.PERIODIC, callback=contador3)#timer 1 min para el reset
-            reset = 1
-            
-            
-            
-        if h > 600: #reset
-            timer3.deinit()
-            h = 0
-            reset = 0
-               
-               
-        if 0 < a < 50: #inyeccion
-            
-            girar_antihorario()
-           
-            
-        if a > 50:
-            
-            timer2.deinit()
-            a = 0
-            detener_motor()
-                
-       
-        
-    
-    
-_thread.start_new_thread(inyeccion, ())
-comunicacion()
-
-# Ejecutar la función de inyección en el hilo principal
 
 
 while True:
-    pass
+    print("Esperando recibir datos...")
+    
+    
+    try:
+        # Intentar recibir los datos
+        msg = s.recv(1024)
+        bpm = msg.decode("utf-8")
+        print("bpm recibido:", bpm)
 
+        if gpio26.value() and timer_started != True:
+            timer_count_carga = timer_count
+            timer.init(period=10, mode=Timer.PERIODIC, callback=inyeccion)
+            timer_started = True
+        
+        if bpm == "1" and timer_started != True:
+            timer.init(period=10, mode=Timer.PERIODIC, callback=inyeccion)
+            timer_started = True
+            
+        
+    except OSError as e:
+        print("Nada che =(")
+        
