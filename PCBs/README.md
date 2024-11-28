@@ -1,3 +1,3 @@
 ## PCBs
 
-Diseños del pcb realizados con KIKAD
+Diseños de los PCB realizados con el programa KIKAD
